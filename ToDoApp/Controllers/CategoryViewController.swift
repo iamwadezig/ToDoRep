@@ -7,14 +7,16 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 
 class CategoryViewController: UITableViewController {
 
-    var categoryArray = [Category]()
+    let realm = try! Realm()
     
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var categoryArray : Results<Category>?
+    
+//    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,7 +31,9 @@ class CategoryViewController: UITableViewController {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         
-        cell.textLabel?.text = categoryArray[indexPath.row].name
+        //Nil Coalescing Operator
+        
+        cell.textLabel?.text = categoryArray?[indexPath.row].name ?? "No Category added yet"
         
         return cell
         
@@ -37,19 +41,23 @@ class CategoryViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         
-        return categoryArray.count
+        //if categoryArray not nil  then return category.count if its nil then return 1. This is called nil coalescing operator
+        
+        return categoryArray?.count ?? 1
         
     }
     
     //MARK: - Data Manipulation Methods
     
-    //TODO: - Saving Category List to Persistent DB
+    //TODO: - Saving Methods with Realm
     
-    func saveCategories() {
+    func save(category: Category) {
         
         do {
             
-            try context.save()
+            try realm.write {
+                realm.add(category)
+            }
             
             
         } catch {
@@ -65,18 +73,23 @@ class CategoryViewController: UITableViewController {
     
     func loadCategories() {
         
-        let request : NSFetchRequest<Category> = Category.fetchRequest()
-        
-        do {
-            
-            categoryArray = try context.fetch(request)
-            
-        } catch {
-            
-            print("Error fetching data from context : \(error)")
-            
-        }
-        
+        categoryArray = realm.objects(Category.self)
+
+//      use next when using datacore (SQLite)
+//
+//        let request : NSFetchRequest<Category> = Category.fetchRequest()
+//        
+//        do {
+//            
+//            categoryArray = try context.fetch(request)
+//            
+//        } catch {
+//            
+//            print("Error fetching data from context : \(error)")
+//            
+//        }
+//        
+ 
         tableView.reloadData()
         
     }
@@ -95,17 +108,16 @@ class CategoryViewController: UITableViewController {
             
             // what will happen one the user clicks the Add Item button on our UIAlert
             
-            let newCategory = Category(context: self.context)
+            let newCategory = Category()
             
             newCategory.name = textField.text!
             
-            self.categoryArray.append(newCategory)
-            
-            self.saveCategories()
+            self.save(category: newCategory)
             
         }
         
         
+        //TODO: - Adding placeholder(place you type input
         
         
         alert.addTextField { (alertTextField) in
@@ -115,16 +127,15 @@ class CategoryViewController: UITableViewController {
             
         }
         
-    //TODO: - Adding cancel button to cancel input new data
+        //TODO: - Adding cancel button to cancel input new data
         
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: {
             action in
             
-            // Called when user taps outside
-            
             self.loadCategories()
             
         }))
+        
         
         alert.addAction(action)
         
@@ -152,7 +163,9 @@ class CategoryViewController: UITableViewController {
 
         if let indexPath = tableView.indexPathForSelectedRow {
 
-            destinationVC.selectedCategory = categoryArray[indexPath.row]
+            // this one doesnt need nil coalescing operator, because in ToDoViewController we have var selectedCategory which trigger when its not nil, so when its nil it wont trigger.
+            
+            destinationVC.selectedCategory = categoryArray?[indexPath.row]
 
         }
     }
